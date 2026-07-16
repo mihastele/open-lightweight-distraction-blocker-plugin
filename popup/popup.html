@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusGuard</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 3.25 2.2 6 5.2 7.3V19c0 .55.45 1 1 1h1.6c.55 0 1-.45 1-1v-2.7C16.8 15 19 12.25 19 9c0-3.87-3.13-7-7-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="currentColor"/>
+            <circle cx="12" cy="9" r="2" fill="currentColor"/>
+          </svg>
+          <span>FocusGuard</span>
+        </div>
+        <div class="header-actions">
+          <button id="settingsBtn" class="icon-btn" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="status-bar" id="statusBar">
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">Loading...</span>
+      </div>
+      <div class="blocked-count">
+        <span id="blockedCount">0</span> blocked today
+      </div>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </button>
+      <button class="tab" data-tab="blocklist">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Blocklist
+      </button>
+      <button class="tab" data-tab="schedule">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Schedule
+      </button>
+    </nav>
+
+    <main class="content">
+      <section id="dashboard" class="tab-content active">
+        <div class="card main-toggle">
+          <div class="toggle-info">
+            <h3 id="toggleTitle">Blocking Active</h3>
+            <p id="toggleDesc">Distracting sites are being blocked</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="mainToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="card pause-card">
+          <h4>Quick Pause</h4>
+          <div class="pause-buttons">
+            <button class="pause-btn" data-minutes="5">5 min</button>
+            <button class="pause-btn" data-minutes="15">15 min</button>
+            <button class="pause-btn" data-minutes="30">30 min</button>
+            <button class="pause-btn" data-minutes="60">1 hour</button>
+            <button class="pause-btn" data-minutes="0" id="pauseResumeBtn">Pause</button>
+          </div>
+          <div id="pauseTimer" class="pause-timer hidden">
+            <span id="pauseTimeLeft"></span>
+          </div>
+        </div>
+
+        <div class="card categories-card">
+          <h4>Categories</h4>
+          <div class="categories-list" id="categoriesList"></div>
+        </div>
+
+        <div class="card quick-add-card">
+          <h4>Quick Add</h4>
+          <div class="quick-add-input">
+            <input type="text" id="quickAddInput" placeholder="Enter domain (e.g., twitter.com)">
+            <button id="quickAddBtn" class="btn btn-primary">Add</button>
+          </div>
+          <div class="quick-presets">
+            <button class="preset-btn" data-category="social">Social Media</button>
+            <button class="preset-btn" data-category="news">News</button>
+            <button class="preset-btn" data-category="entertainment">Entertainment</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="blocklist" class="tab-content">
+        <div class="blocklist-header">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search domains...">
+          </div>
+          <div class="blocklist-actions">
+            <button id="bulkSelectBtn" class="btn btn-sm">Select</button>
+            <button id="bulkDeleteBtn" class="btn btn-sm btn-danger hidden">Delete</button>
+          </div>
+        </div>
+
+        <div class="blocklist-toolbar">
+          <button id="importBtn" class="btn btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Import
+          </button>
+          <button id="exportBtn" class="btn btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Export
+          </button>
+          <button id="importHostsBtn" class="btn btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Hosts File
+          </button>
+          <button id="addDomainBtn" class="btn btn-sm btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add
+          </button>
+        </div>
+
+        <div class="blocklist-container" id="blocklistContainer">
+          <div class="empty-state" id="emptyState">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <p>No domains blocked yet</p>
+            <p class="text-muted">Add domains or import a blocklist to get started</p>
+          </div>
+        </div>
+
+        <input type="file" id="fileInput" accept=".txt,.json,.csv" class="hidden">
+        <input type="file" id="hostsFileInput" accept=".txt,.hosts" class="hidden">
+      </section>
+
+      <section id="schedule" class="tab-content">
+        <div class="card schedule-toggle">
+          <div class="toggle-info">
+            <h3>Schedule Blocking</h3>
+            <p>Only block during specified hours</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="scheduleToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="schedule-days" id="scheduleDays">
+          <div class="day-row" data-day="monday">
+            <label class="day-toggle">
+              <input type="checkbox" checked>
+              <span class="day-name">Monday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="tuesday">
+            <label class="day-toggle">
+              <input type="checkbox" checked>
+              <span class="day-name">Tuesday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="wednesday">
+            <label class="day-toggle">
+              <input type="checkbox" checked>
+              <span class="day-name">Wednesday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="thursday">
+            <label class="day-toggle">
+              <input type="checkbox" checked>
+              <span class="day-name">Thursday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="friday">
+            <label class="day-toggle">
+              <input type="checkbox" checked>
+              <span class="day-name">Friday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="saturday">
+            <label class="day-toggle">
+              <input type="checkbox">
+              <span class="day-name">Saturday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+          <div class="day-row" data-day="sunday">
+            <label class="day-toggle">
+              <input type="checkbox">
+              <span class="day-name">Sunday</span>
+            </label>
+            <div class="time-inputs">
+              <input type="time" class="time-start" value="09:00">
+              <span class="time-sep">to</span>
+              <input type="time" class="time-end" value="17:00">
+            </div>
+          </div>
+        </div>
+
+        <button id="saveScheduleBtn" class="btn btn-primary btn-full">Save Schedule</button>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

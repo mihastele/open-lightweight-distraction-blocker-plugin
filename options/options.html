@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusGuard - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 3.25 2.2 6 5.2 7.3V19c0 .55.45 1 1 1h1.6c.55 0 1-.45 1-1v-2.7C16.8 15 19 12.25 19 9c0-3.87-3.13-7-7-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="#6366f1"/>
+          <circle cx="12" cy="9" r="2" fill="#6366f1"/>
+        </svg>
+        <div>
+          <h1>FocusGuard Settings</h1>
+          <p>Configure your distraction blocking preferences</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="settings-section">
+        <h2>General</h2>
+        <div class="setting-row">
+          <div class="setting-info">
+            <h3>Strict Mode</h3>
+            <p>Prevent disabling the blocker during active schedule hours</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="strictMode">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Allowlist</h2>
+        <p class="section-desc">Domains that should never be blocked, even if they match a blocklist entry.</p>
+        <div class="allowlist-input-row">
+          <input type="text" id="allowlistInput" placeholder="Enter domain (e.g., google.com)">
+          <button class="btn btn-primary" id="addAllowlistBtn">Add</button>
+        </div>
+        <div class="allowlist-container" id="allowlistContainer"></div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Custom Categories</h2>
+        <p class="section-desc">Manage your blocking categories.</p>
+        <div class="categories-grid" id="categoriesGrid"></div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Data Management</h2>
+        <div class="data-actions">
+          <button class="btn" id="exportAllBtn">Export All Data</button>
+          <button class="btn" id="importAllBtn">Import Data</button>
+          <button class="btn btn-danger" id="resetBtn">Reset All Settings</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".json" class="hidden">
+      </section>
+
+      <section class="settings-section">
+        <h2>About</h2>
+        <div class="about-info">
+          <p><strong>FocusGuard</strong> v1.0.0</p>
+          <p>A lightweight, privacy-focused distraction blocker.</p>
+          <p>All data is stored locally on your device. No servers, no tracking.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
