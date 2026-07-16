@@ -46,6 +46,7 @@
 3. Select `manifest-firefox.json` from the folder
 4. The shield icon appears in your toolbar
 
+> Note: When installing for Firefox, remove `manifest.json` and rename `manifest-firefox.json` to `manifest.json`
 > For permanent installation in Firefox, you'll need to sign the add-on via [addons.mozilla.org](https://addons.mozilla.org).
 
 ---
