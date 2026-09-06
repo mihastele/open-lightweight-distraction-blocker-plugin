@@ -2,6 +2,7 @@ import {
   DEFAULT_SETTINGS,
   DEFAULT_SCHEDULE,
   isBlockingActive,
+  isValidDomain,
   normalizeDomain
 } from '../lib/utils.js';
 
@@ -14,12 +15,36 @@ let blockedCount = 0;
 let blockedCountDate = new Date().toDateString();
 let updateLock = Promise.resolve();
 
+function normalizeBlocklist(entries) {
+  const seen = new Set();
+  return (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      const domain = typeof entry === 'string' ? entry : entry?.domain;
+      const normalized = normalizeDomain(domain);
+      if (!normalized || !isValidDomain(normalized)) return null;
+
+      const category = typeof entry === 'string' ? 'custom' : (entry?.category || 'custom');
+      return {
+        domain: normalized,
+        category,
+        addedAt: typeof entry?.addedAt === 'number' ? entry.addedAt : Date.now()
+      };
+    })
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = normalizeDomain(entry.domain);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 async function loadState() {
   const data = await browser.storage.local.get(['settings', 'schedule', 'blocklist', 'blockedCount', 'blockedCountDate']);
   if (data.settings) currentSettings = { ...DEFAULT_SETTINGS, ...data.settings };
   if (data.schedule) currentSchedule = { ...DEFAULT_SCHEDULE, ...data.schedule };
-  if (data.blocklist) currentBlocklist = data.blocklist;
-  if (data.blockedCount) blockedCount = data.blockedCount;
+  if (data.blocklist) currentBlocklist = normalizeBlocklist(data.blocklist);
+  if (data.blockedCount !== undefined) blockedCount = data.blockedCount;
   if (data.blockedCountDate) blockedCountDate = data.blockedCountDate;
 
   const today = new Date().toDateString();
@@ -30,6 +55,7 @@ async function loadState() {
 }
 
 async function saveState() {
+  currentBlocklist = normalizeBlocklist(currentBlocklist);
   await browser.storage.local.set({
     settings: currentSettings,
     schedule: currentSchedule,
@@ -200,16 +226,17 @@ async function handleMessage(message) {
       await updateBlockingRules();
       return { success: true };
 
-    case 'updateBlocklist':
-      currentBlocklist = message.blocklist;
+    case 'updateBlocklist': {
+      currentBlocklist = normalizeBlocklist(message.blocklist);
       await saveState();
       await updateBlockingRules();
       return { success: true };
+    }
 
     case 'addDomain': {
       const domain = normalizeDomain(message.domain);
       const category = message.category || 'custom';
-      if (!currentBlocklist.find(e => normalizeDomain(e.domain) === domain)) {
+      if (domain && !currentBlocklist.find(e => normalizeDomain(e.domain) === domain)) {
         currentBlocklist.push({ domain, category, addedAt: Date.now() });
         await saveState();
         await updateBlockingRules();
@@ -226,7 +253,7 @@ async function handleMessage(message) {
     }
 
     case 'bulkAddDomains': {
-      const domains = message.domains.map(d => normalizeDomain(d));
+      const domains = message.domains.map(d => normalizeDomain(d)).filter(Boolean);
       const category = message.category || 'custom';
       for (const domain of domains) {
         if (!currentBlocklist.find(e => normalizeDomain(e.domain) === domain)) {
@@ -239,7 +266,7 @@ async function handleMessage(message) {
     }
 
     case 'bulkRemoveDomains': {
-      const domains = new Set(message.domains.map(d => normalizeDomain(d)));
+      const domains = new Set((message.domains || []).map(d => normalizeDomain(d)).filter(Boolean));
       currentBlocklist = currentBlocklist.filter(e => !domains.has(normalizeDomain(e.domain)));
       await saveState();
       await updateBlockingRules();
