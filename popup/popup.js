@@ -174,20 +174,25 @@ function renderBlocklist(filter = '') {
   const container = document.getElementById('blocklistContainer');
   const emptyState = document.getElementById('emptyState');
 
+  if (!container) return;
+
   let filtered = state.blocklist;
   if (filter) {
     const lower = filter.toLowerCase();
     filtered = state.blocklist.filter(e => normalizeDomain(e.domain).includes(lower));
   }
 
-  if (filtered.length === 0) {
-    container.innerHTML = '';
-    container.appendChild(emptyState);
-    emptyState.classList.remove('hidden');
-    return;
+  if (emptyState) {
+    if (filtered.length === 0) {
+      container.innerHTML = '';
+      container.appendChild(emptyState);
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
   }
 
-  emptyState.classList.add('hidden');
   container.innerHTML = '';
 
   for (const entry of filtered) {
@@ -346,15 +351,33 @@ function initDashboard() {
     btn.addEventListener('click', async () => {
       const category = btn.dataset.category;
       const domains = PRESET_CATEGORIES[category] || [];
-      await sendMessage({ type: 'bulkAddDomains', domains, category });
-      for (const domain of domains) {
-        const normalized = normalizeDomain(domain);
-        if (!state.blocklist.find(e => e.domain === normalized)) {
-          state.blocklist.push({ domain: normalized, category, addedAt: Date.now() });
+      const normalizedDomains = domains.map(normalizeDomain).filter(Boolean);
+      const existingDomains = new Set(
+        state.blocklist.filter(entry => entry.category === category).map(entry => normalizeDomain(entry.domain))
+      );
+      const isActive = normalizedDomains.some(domain => existingDomains.has(domain));
+
+      if (isActive) {
+        await sendMessage({ type: 'bulkRemoveDomains', domains: normalizedDomains });
+        state.blocklist = state.blocklist.filter(entry => {
+          const domain = normalizeDomain(entry.domain);
+          return !(entry.category === category && normalizedDomains.includes(domain));
+        });
+        renderCategories();
+        renderBlocklist(document.getElementById('searchInput')?.value || '');
+        showToast(`Removed ${normalizedDomains.length} ${category} sites`);
+        return;
+      }
+
+      await sendMessage({ type: 'bulkAddDomains', domains: normalizedDomains, category });
+      for (const domain of normalizedDomains) {
+        if (!state.blocklist.find(e => normalizeDomain(e.domain) === domain)) {
+          state.blocklist.push({ domain, category, addedAt: Date.now() });
         }
       }
       renderCategories();
-      showToast(`Added ${domains.length} ${category} sites`);
+      renderBlocklist(document.getElementById('searchInput')?.value || '');
+      showToast(`Added ${normalizedDomains.length} ${category} sites`);
     });
   });
 }
