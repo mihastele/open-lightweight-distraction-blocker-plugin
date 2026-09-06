@@ -38,7 +38,13 @@ async function loadState() {
   const response = await sendMessage({ type: 'getState' });
   if (response.settings) state.settings = response.settings;
   if (response.schedule) state.schedule = response.schedule;
-  if (response.blocklist) state.blocklist = response.blocklist;
+  if (response.blocklist) {
+    state.blocklist = response.blocklist.map(entry => ({
+      ...entry,
+      domain: normalizeDomain(entry.domain || ''),
+      category: entry.category || 'custom'
+    })).filter(entry => entry.domain);
+  }
   if (response.blockedCount !== undefined) state.blockedCount = response.blockedCount;
   if (response.isActive !== undefined) state.isActive = response.isActive;
 }
@@ -171,7 +177,7 @@ function renderBlocklist(filter = '') {
   let filtered = state.blocklist;
   if (filter) {
     const lower = filter.toLowerCase();
-    filtered = state.blocklist.filter(e => e.domain.includes(lower));
+    filtered = state.blocklist.filter(e => normalizeDomain(e.domain).includes(lower));
   }
 
   if (filtered.length === 0) {
@@ -185,8 +191,9 @@ function renderBlocklist(filter = '') {
   container.innerHTML = '';
 
   for (const entry of filtered) {
+    const normalized = normalizeDomain(entry.domain);
     const item = document.createElement('div');
-    item.className = 'blocklist-item' + (selectedDomains.has(entry.domain) ? ' selected' : '');
+    item.className = 'blocklist-item' + (selectedDomains.has(normalized) ? ' selected' : '');
     const cat = state.settings.categories[entry.category];
     const catColor = cat ? cat.color : '#6b7280';
     const catName = cat ? cat.name : entry.category;
@@ -194,14 +201,14 @@ function renderBlocklist(filter = '') {
     if (bulkMode) {
       const cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.dataset.domain = entry.domain;
-      cb.checked = selectedDomains.has(entry.domain);
+      cb.dataset.domain = normalized;
+      cb.checked = selectedDomains.has(normalized);
       item.appendChild(cb);
     }
 
     const domainSpan = document.createElement('span');
     domainSpan.className = 'blocklist-domain';
-    domainSpan.textContent = entry.domain;
+    domainSpan.textContent = normalized;
     item.appendChild(domainSpan);
 
     const catSpan = document.createElement('span');
@@ -213,7 +220,7 @@ function renderBlocklist(filter = '') {
 
     const removeBtn = document.createElement('button');
     removeBtn.className = 'blocklist-remove';
-    removeBtn.dataset.domain = entry.domain;
+    removeBtn.dataset.domain = normalized;
     removeBtn.title = 'Remove';
     removeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     item.appendChild(removeBtn);
@@ -223,9 +230,11 @@ function renderBlocklist(filter = '') {
 
   container.querySelectorAll('.blocklist-remove').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const domain = e.currentTarget.dataset.domain;
+      const domain = normalizeDomain(e.currentTarget.dataset.domain || '');
+      if (!domain) return;
       await sendMessage({ type: 'removeDomain', domain });
-      state.blocklist = state.blocklist.filter(entry => entry.domain !== domain);
+      state.blocklist = state.blocklist.filter(entry => normalizeDomain(entry.domain) !== domain);
+      selectedDomains.delete(domain);
       renderBlocklist(document.getElementById('searchInput').value);
       showToast(`Removed ${domain}`);
     });
@@ -234,7 +243,8 @@ function renderBlocklist(filter = '') {
   if (bulkMode) {
     container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       cb.addEventListener('change', (e) => {
-        const domain = e.target.dataset.domain;
+        const domain = normalizeDomain(e.target.dataset.domain || '');
+        if (!domain) return;
         if (e.target.checked) {
           selectedDomains.add(domain);
         } else {
@@ -368,9 +378,10 @@ function initBlocklist() {
       showToast('No domains selected');
       return;
     }
-    const domains = [...selectedDomains];
+    const domains = [...selectedDomains].map(normalizeDomain).filter(Boolean);
     await sendMessage({ type: 'bulkRemoveDomains', domains });
-    state.blocklist = state.blocklist.filter(e => !selectedDomains.has(e.domain));
+    const normalizedSet = new Set(domains);
+    state.blocklist = state.blocklist.filter(e => !normalizedSet.has(normalizeDomain(e.domain)));
     selectedDomains.clear();
     bulkMode = false;
     document.getElementById('bulkSelectBtn').textContent = 'Select';
