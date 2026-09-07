@@ -4,9 +4,8 @@
   "version": "1.0.0",
   "description": "Lightweight distraction blocker. Block websites, set schedules, and stay focused. No servers, no tracking — everything stays on your device.",
   "permissions": [
-    "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess",
-    "declarativeNetRequestFeedback",
+    "webRequest",
+    "webRequestBlocking",
     "storage",
     "alarms",
     "tabs"

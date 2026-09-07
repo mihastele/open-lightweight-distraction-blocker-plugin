@@ -10,7 +10,8 @@
     }
   },
   "permissions": [
-    "declarativeNetRequest",
+    "webRequest",
+    "webRequestBlocking",
     "storage",
     "alarms",
     "tabs"
