@@ -65,81 +65,45 @@ async function saveState() {
   });
 }
 
+function isDomainBlocked(hostname, domain) {
+  const normalizedHostname = normalizeDomain(hostname);
+  const normalizedDomain = normalizeDomain(domain);
+
+  if (!normalizedHostname || !normalizedDomain) return false;
+  return normalizedHostname === normalizedDomain || normalizedHostname.endsWith(`.${normalizedDomain}`);
+}
+
+function shouldBlockUrl(urlString) {
+  if (!urlString || !isBlockingActive(currentSettings, currentSchedule)) return false;
+
+  try {
+    const url = new URL(urlString);
+    const hostname = url.hostname;
+    if (!hostname) return false;
+
+    const allowlistSet = new Set(currentSettings.allowlist.map(d => normalizeDomain(d)));
+    if (allowlistSet.has(normalizeDomain(hostname))) return false;
+
+    return currentBlocklist.some((entry) => {
+      const category = currentSettings.categories[entry.category];
+      if (!category || !category.enabled) return false;
+      return isDomainBlocked(hostname, entry.domain);
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
 async function updateBlockingRules() {
   const p = updateLock.then(async () => {
     const isActive = isBlockingActive(currentSettings, currentSchedule);
-
-    let existingRuleIds = [];
-    try {
-      const existingRules = await browser.declarativeNetRequest.getDynamicRules();
-      existingRuleIds = existingRules.map(r => r.id);
-    } catch (e) {
-      console.error('Error getting rules:', e);
-    }
-
-    if (!isActive || currentBlocklist.length === 0) {
-      if (existingRuleIds.length > 0) {
-        try {
-          await browser.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: existingRuleIds
-          });
-        } catch (e) {
-          console.error('Error removing rules:', e);
-        }
-      }
-      await updateIcon(false);
-      return;
-    }
-
-    const allowlistSet = new Set(currentSettings.allowlist.map(d => normalizeDomain(d)));
-    const domainsToBlock = currentBlocklist.filter(entry => {
-      const cat = currentSettings.categories[entry.category];
-      if (!cat || !cat.enabled) return false;
-      return !allowlistSet.has(normalizeDomain(entry.domain));
+    const hasBlockedDomains = currentBlocklist.some((entry) => {
+      const category = currentSettings.categories[entry.category];
+      if (!category || !category.enabled) return false;
+      return !currentSettings.allowlist.some(d => normalizeDomain(d) === normalizeDomain(entry.domain));
     });
 
-    if (domainsToBlock.length === 0) {
-      if (existingRuleIds.length > 0) {
-        try {
-          await browser.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: existingRuleIds
-          });
-        } catch (e) {
-          console.error('Error removing rules:', e);
-        }
-      }
-      await updateIcon(false);
-      return;
-    }
-
-    const addRules = [];
-    let ruleId = 1;
-
-    for (const entry of domainsToBlock) {
-      const domain = normalizeDomain(entry.domain);
-      addRules.push({
-        id: ruleId++,
-        priority: 1,
-        action: { type: 'block' },
-        condition: {
-          urlFilter: `||${domain}`,
-          resourceTypes: ['main_frame', 'sub_frame']
-        }
-      });
-
-      if (ruleId > 30000) break;
-    }
-
-    try {
-      await browser.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingRuleIds,
-        addRules
-      });
-    } catch (e) {
-      console.error('Error updating rules:', e);
-    }
-
-    await updateIcon(true);
+    await updateIcon(isActive && hasBlockedDomains);
   });
 
   updateLock = p.catch(() => {});
@@ -341,15 +305,29 @@ async function handleMessage(message) {
   }
 }
 
-browser.declarativeNetRequest.onRuleMatchedDebug?.addListener(() => {
-  const today = new Date().toDateString();
-  if (blockedCountDate !== today) {
-    blockedCount = 0;
-    blockedCountDate = today;
-  }
-  blockedCount++;
-  browser.storage.local.set({ blockedCount, blockedCountDate });
-});
+if (browser.webRequest?.onBeforeRequest) {
+  browser.webRequest.onBeforeRequest.addListener(
+    (details) => {
+      if (!details || details.type !== 'main_frame' || !shouldBlockUrl(details.url)) {
+        return {};
+      }
+
+      const today = new Date().toDateString();
+      if (blockedCountDate !== today) {
+        blockedCount = 0;
+        blockedCountDate = today;
+      }
+      blockedCount++;
+      browser.storage.local.set({ blockedCount, blockedCountDate }).catch(() => {});
+
+      return {
+        redirectUrl: browser.runtime.getURL(`blocked/blocked.html?target=${encodeURIComponent(details.url)}`)
+      };
+    },
+    { urls: ['<all_urls>'], types: ['main_frame'] },
+    ['blocking']
+  );
+}
 
 async function init() {
   await loadState();

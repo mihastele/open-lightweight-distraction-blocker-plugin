@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusGuard: Step away from the scroll</title>
+    <link rel="stylesheet" href="blocked.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+
+      <main class="card">
+        <p class="eyebrow">FocusGuard intervention</p>
+        <h1>This feed is not the boss of you.</h1>
+        <p class="subtitle">
+          Endless scrolling and addictive feeds are engineered to steal your attention one tap at a time.
+          You tried to open a site that was placed on your blocker list because it makes it easier to lose time,
+          lose focus, and feel worse afterward.
+        </p>
+
+        <div class="meta-row">
+          <span>Blocked site</span>
+          <strong id="blockedTarget">this site</strong>
+        </div>
+
+        <section class="story-grid" aria-label="Why addiction is bad">
+          <article class="story-item">
+            <span class="tag">Attention</span>
+            <h2>Scrolls drain your energy.</h2>
+            <p>
+              A feed is designed to keep your thumb moving and your mind restless. What feels like a quick check often turns into a lost hour.
+            </p>
+          </article>
+
+          <article class="story-item">
+            <span class="tag">Mood</span>
+            <h2>Algorithms reward the worst habits.</h2>
+            <p>
+              They optimize for reaction, comparison, and dopamine spikes—exactly the ingredients that keep people hooked, anxious, and unfocused.
+            </p>
+          </article>
+
+          <article class="story-item">
+            <span class="tag">Recovery</span>
+            <h2>Your time is worth more.</h2>
+            <p>
+              Real life is built by deliberate choices, not by constant notifications and addicting loops pretending to be entertainment.
+            </p>
+          </article>
+        </section>
+
+        <div class="actions">
+          <button id="backButton" type="button">Back to work</button>
+          <a class="link-button" href="https://www.google.com/search?q=healthy+break+ideas" target="_blank" rel="noreferrer">Try a healthier reset</a>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const targetParam = params.get('target');
+      const targetLabel = document.getElementById('blockedTarget');
+
+      if (targetParam) {
+        try {
+          const hostname = new URL(targetParam).hostname;
+          targetLabel.textContent = hostname || targetParam;
+        } catch (error) {
+          targetLabel.textContent = targetParam;
+        }
+      }
+
+      document.getElementById('backButton').addEventListener('click', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.close();
+        }
+      });
+    </script>
+  </body>
+</html>
